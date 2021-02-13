@@ -2,7 +2,10 @@
 Unity Barracudaを用いてTinyYoloV2をWebGL上で推論するサンプルです。<br>
 現時点(2021/02/13)でUnityのWebGLはCPU推論のみのサポートです。<br>
 GPU推論と比較しパフォーマンスは出ません。<br>
-![v9g8l-5fqfl](https://user-images.githubusercontent.com/37477845/107378942-d1a7c480-6b2f-11eb-9e4f-ff17a466685e.gif)
+■Unity Editor実行<br>
+![zppnt-jlek8](https://user-images.githubusercontent.com/37477845/107845474-fbf2ce00-6e1e-11eb-9b0a-00a80717e779.gif)
+■WebGL実行<br>
+![2wrie-hauk1](https://user-images.githubusercontent.com/37477845/107845479-04e39f80-6e1f-11eb-84cf-8bead776db48.gif)
 
 # Demo
 動作確認用ページは以下。<br>
