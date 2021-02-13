@@ -1,0 +1,12 @@
+
+=== Sat Feb 13 10:30:26 2021
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were added:
+  com.unity.ide.visualstudio@2.0.5
+The following packages were updated:
+  com.unity.barracuda from version 0.7.0-preview to 1.0.4
+The following packages were removed:
+  com.unity.package-manager-ui@2.2.0

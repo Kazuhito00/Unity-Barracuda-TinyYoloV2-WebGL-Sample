@@ -26,39 +26,23 @@ public class YOLOHandler : IDisposable
     const int BoxesPerCell = 5;
     int inputWidthHeight;
 
-
     NNHandler nn;
-    IOps ops;
     IOps cpuOps;
-
-    Tensor premulTensor;
-
-    PerformanceCounter.StopwatchCounter stopwatch = new PerformanceCounter.StopwatchCounter("Net inference time");
 
     public YOLOHandler(NNHandler nn)
     {
         this.nn = nn;
-        ops = BarracudaUtils.CreateOps(WorkerFactory.Type.Compute);
-        cpuOps = BarracudaUtils.CreateOps(WorkerFactory.Type.CSharp);
+        cpuOps = BarracudaUtils.CreateOps(WorkerFactory.Type.CSharpRef);
 
         inputWidthHeight = nn.model.inputs[0].shape[1];
-        premulTensor = new Tensor(1, 1, new float[] { 255 });
-
-        PerformanceCounter.GetInstance()?.AddCounter(stopwatch);
     }
 
     public List<ResultBox> Run(Texture2D tex)
     {
         Profiler.BeginSample("YOLO.Run");
 
-        Tensor input = new Tensor(tex);
-
-        var preprocessed = Preprocess(input);
-        input.Dispose();
-
-        stopwatch.Start();
+        var preprocessed = Preprocess(tex);
         Tensor output = Execute(preprocessed);
-        stopwatch.Stop();
         preprocessed.Dispose();
 
         var results = Postprocess(output);
@@ -70,7 +54,6 @@ public class YOLOHandler : IDisposable
 
     public void Dispose()
     {
-        premulTensor.Dispose();
     }
 
     private Tensor Execute(Tensor preprocessed)
@@ -78,19 +61,38 @@ public class YOLOHandler : IDisposable
         Profiler.BeginSample("YOLO.Execute");
 
         nn.worker.Execute(preprocessed);
-        nn.worker.WaitForCompletion();
         var output = nn.worker.PeekOutput();
         
         Profiler.EndSample();
         return output;
     }
 
-    Tensor Preprocess(Tensor x)
+    Tensor Preprocess(Texture2D tex)
     {
         Profiler.BeginSample("YOLO.Preprocess");
-        var preprocessed = ops.Mul(new Tensor[] { x, premulTensor });
+        var color32 = tex.GetPixels32();
+        float[] tempFloatValues = new float[inputWidthHeight * inputWidthHeight * 3];
+        float[] floatValues = new float[inputWidthHeight * inputWidthHeight * 3];
+        
+        for (int i = 0; i < color32.Length; i++) {
+            var color = color32[color32.Length - i - 1];
+            tempFloatValues[i * 3 + 0] = (color.r - 0) / 1.0f;
+            tempFloatValues[i * 3 + 1] = (color.g - 0) / 1.0f;
+            tempFloatValues[i * 3 + 2] = (color.b - 0) / 1.0f;
+        }
+        for (int y = 0; y < inputWidthHeight; y++) {
+            for (int x = 0; x < inputWidthHeight; x++) {
+                int index = (y * inputWidthHeight) + x;
+                int reverseIndex = (y * inputWidthHeight) + (inputWidthHeight - x - 1);
+                floatValues[index * 3 + 0] = tempFloatValues[reverseIndex * 3 + 0];
+                floatValues[index * 3 + 1] = tempFloatValues[reverseIndex * 3 + 1];
+                floatValues[index * 3 + 2] = tempFloatValues[reverseIndex * 3 + 2];
+            }
+        }
+
+        var inputTensor = new Tensor(1, inputWidthHeight, inputWidthHeight, 3, floatValues);
         Profiler.EndSample();
-        return preprocessed;
+        return inputTensor;
     }
 
     List<ResultBox> Postprocess(Tensor x)
